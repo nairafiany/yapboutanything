@@ -9,6 +9,7 @@ import YapSetup from "./practice/YapSetup";
 import SessionTimer from "./practice/SessionTimer";
 import CompletionScreen from "./practice/CompletionScreen";
 import ShareModal from "./share/ShareModal";
+import IntroLoader from "./IntroLoader";
 
 function collectPrompts(item, results = []) {
   item.prompts?.forEach((prompt) => results.push({ prompt, path: findPath(item.id) }));
@@ -17,12 +18,19 @@ function collectPrompts(item, results = []) {
 }
 
 export default function YapApp() {
+  const [showIntro, setShowIntro] = useState(true);
   const [path, setPath] = useState([rootNode]);
   const [phase, setPhase] = useState("universe");
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
   const { progress, patch, explore, complete, reflect } = useLocalProgress();
   const allPrompts = useMemo(() => collectPrompts(rootNode), []);
+
+  useEffect(() => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => setShowIntro(false), reducedMotion ? 250 : 1800);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const enter = useCallback((item) => {
     explore(item.id);
@@ -48,6 +56,9 @@ export default function YapApp() {
   const another = () => random();
 
   return <>
+    <AnimatePresence>
+      {showIntro && <IntroLoader key="intro" onDone={() => setShowIntro(false)} />}
+    </AnimatePresence>
     <AnimatePresence mode="wait">
       {phase === "universe" && <KnowledgeUniverse key="universe" path={path} explored={progress.explored} hasInteracted={progress.hasInteracted} onEnter={enter} onJump={jump} onPrompt={choosePrompt} onRandom={random} />}
       {phase === "setup" && <YapSetup key="setup" prompt={selectedPrompt} thinkTime={progress.thinkTime} yapTime={progress.yapTime} sound={progress.sound} onChange={patch} onStart={() => setPhase("think")} onBack={() => setPhase("universe")} />}
