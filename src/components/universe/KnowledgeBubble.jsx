@@ -1,35 +1,32 @@
-"use client";
+﻿"use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { clamp, reveal } from "./composition.mjs";
 
-export default function KnowledgeBubble({ item, index, total, isExplored, onEnter, root }) {
+const tints = ["204 214 197", "225 203 183", "211 207 191", "205 213 211"];
+
+export default function KnowledgeBubble({ node, cameraScale, isCurrent, isExplored, onEnter, onHover, hoverRelation, interactive }) {
   const reduced = useReducedMotion();
-  const angle = (index / total) * Math.PI * 2 - Math.PI / 2 + (root ? 0.13 : 0.35);
-  const desktopRadius = root ? 38 : Math.min(34, 20 + total * 2);
-  const x = 50 + Math.cos(angle) * desktopRadius;
-  const y = 50 + Math.sin(angle) * (root ? 37 : 29);
-  const size = root ? 150 + ((index * 37) % 66) : 170 + ((index * 41) % 52);
-
-  return (
-    <motion.button
-      className={`knowledge-bubble ${root ? "root-bubble" : "inner-bubble"} ${isExplored ? "explored" : ""}`}
-      style={{ "--x": `${x}%`, "--y": `${y}%`, "--size": `${size}px`, "--delay": `${(index % 6) * -1.3}s` }}
-      initial={{ opacity: 0, scale: .65 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 2.5 }}
-      transition={{ duration: reduced ? 0 : .75, delay: reduced ? 0 : index * .035, ease: [.2,.8,.2,1] }}
-      whileHover={reduced ? {} : { scale: 1.055, zIndex: 5 }}
-      whileTap={{ scale: .98 }}
-      onClick={() => onEnter(item)}
-      aria-label={`Explore ${item.title}`}
-    >
-      <span className="bubble-grain" />
-      <span className="bubble-title">{item.title}</span>
-      <span className="bubble-blurb">{item.blurb}</span>
-      {item.children?.length > 0 && <span className="bubble-preview" aria-hidden="true">
-        {item.children.slice(0, 4).map((child, i) => <span key={child.id} style={{ "--i": i }}>{child.title}</span>)}
-      </span>}
-      <span className="go-deeper">go deeper →</span>
-    </motion.button>
-  );
+  const projected = node.radius * 2 * cameraScale;
+  const unit = 1 / cameraScale;
+  const seed = [...(node.ancestors[0] || node.id)].reduce((sum, c) => sum + c.charCodeAt(0), 0);
+  return <motion.button
+    className={`world-bubble depth-${node.depth} ${isCurrent ? "current" : ""} ${isExplored ? "explored" : ""} ${hoverRelation || ""}`}
+    data-bubble-id={node.id}
+    style={{
+      left:node.x-node.radius,top:node.y-node.radius,width:node.radius*2,height:node.radius*2,zIndex:node.depth,
+      pointerEvents:interactive?"auto":"none",
+      "--unit":`${unit}px`,"--tint":tints[seed%tints.length],
+      "--material-unit":`${unit*clamp(projected/140,.08,1)}px`,
+      "--edge":`${unit*Math.min(.85,projected*.065)}px`,
+      "--surface-alpha":Math.min(.57,.23+node.depth*.055),
+      "--label-opacity":reveal(projected,90,160),
+      "--blur":`${projected>100 && projected<1800 ? 1.4*unit : 0}px`,
+    }}
+    onClick={event=>{event.stopPropagation();onEnter(node)}}
+    onHoverStart={()=>onHover(node.id)} onHoverEnd={()=>onHover(null)}
+    onFocus={()=>onHover(node.id)} onBlur={()=>onHover(null)}
+    tabIndex={interactive?0:-1} aria-label={`Enter ${node.title}`}
+    whileHover={reduced?undefined:{scale:1.008}} transition={{duration:.4}}
+  ><span className="territory-wash" aria-hidden="true" /></motion.button>;
 }

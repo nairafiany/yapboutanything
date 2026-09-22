@@ -26,18 +26,19 @@ export default function YapApp() {
 
   const enter = useCallback((item) => {
     explore(item.id);
-    setPath((p) => [...p, item]);
+    setPath(findPath(item.id) || [rootNode]);
     window.history.pushState({ node: item.id }, "", `#${item.id}`);
   }, [explore]);
   const jump = useCallback((index) => { setPath((p) => p.slice(0, index + 1)); window.history.pushState({}, "", index ? `#${path[index]?.id}` : location.pathname); }, [path]);
   const random = useCallback(() => {
     const next = allPrompts[Math.floor(Math.random() * allPrompts.length)];
-    setPath(next.path); setSelectedPrompt(next.prompt); setPhase("setup"); explore(next.path.at(-1).id);
+    setPath(next.path); setPhase("universe"); explore(next.path.at(-1).id);
+    window.history.pushState({ node: next.path.at(-1).id }, "", `#${next.path.at(-1).id}`);
   }, [allPrompts, explore]);
 
   useEffect(() => {
     const onKey = (event) => { if (event.key === "Escape") phase === "universe" && path.length > 1 ? jump(path.length - 2) : phase !== "universe" && setPhase("universe"); };
-    const onPop = () => setPath((p) => p.length > 1 ? p.slice(0, -1) : p);
+    const onPop = () => { setPath(findPath(location.hash.slice(1)) || [rootNode]); setPhase("universe"); };
     window.addEventListener("keydown", onKey); window.addEventListener("popstate", onPop);
     return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("popstate", onPop); };
   }, [path, phase, jump]);

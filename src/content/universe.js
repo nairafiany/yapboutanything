@@ -1,11 +1,25 @@
+import { enrichDomains, satellites } from "./atlas.js";
+
 const node = (id, title, blurb, children = [], prompts = [], related = []) => ({ id, title, blurb, children, prompts, related });
 const prompt = (id, question, type = "reflection") => ({ id, question, type, suggestedThinkTime: 30, suggestedSpeakTime: 120 });
 
-export const domains = [
+const coreDomains = [
   node("mind", "Human Mind", "the strange machinery behind being you", [
     node("identity", "Identity", "the self you keep assembling", [
       node("authenticity", "Authenticity", "who you are when nobody is grading it", [], [prompt("auth-1", "Does behaving differently around different people make you less authentic?")]),
-      node("social-self", "Social Self", "the version of you that appears around others", [], [prompt("social-1", "Would you still pursue your ambitions if nobody could ever know what you achieved?", "counterfactual")]),
+      node("social-self", "Social Self", "the version of you that appears around others", [
+        node("being-perceived", "Being Perceived", "the self that appears in somebody else's mind", [
+          node("validation", "Validation", "approval used as a mirror", [
+            node("recognition", "Recognition", "the wish to have effort witnessed", [
+              node("achievement", "Achievement", "success made legible", [
+                node("external-approval", "External Approval", "what applause changes", [
+                  node("unseen-ambition", "Unseen Ambition", "wanting without witnesses", [], [prompt("social-1", "Would you still pursue your ambitions if nobody could ever know what you achieved?", "counterfactual")])
+                ])
+              ])
+            ])
+          ])
+        ])
+      ]),
       node("belonging", "Belonging", "where fitting in meets being yourself", [], [prompt("belong-1", "Can you belong somewhere without changing yourself to fit it?")])
     ]),
     node("memory", "Memory", "the unreliable archive", [
@@ -109,7 +123,8 @@ export const domains = [
   ])
 ];
 
-export const rootNode = node("root", "yapboutanything", "find something. think a little. yap about it.", domains);
+export const domains = enrichDomains(coreDomains);
+export const rootNode = node("root", "yapboutanything", "find something. think a little. yap about it.", [...domains,...satellites]);
 
 export function findPath(id, current = rootNode, path = []) {
   const next = [...path, current];
